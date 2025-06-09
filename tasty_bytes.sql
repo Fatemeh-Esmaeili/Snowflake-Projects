@@ -1,3 +1,7 @@
+---- This will create your “tasty_bytes_sample_data.raw_pos.menu”
+---- table and load data into it
+
+
 ---> set the Role
 USE ROLE accountadmin;
 
