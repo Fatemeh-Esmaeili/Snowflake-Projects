@@ -44,3 +44,17 @@ CREATE OR REPLACE TABLE tasty_bytes.raw_pos.truck_clone_time_travel
     CLONE tasty_bytes.raw_pos.truck AT(OFFSET => -60*10);
 
 SELECT * FROM tasty_bytes.raw_pos.truck_clone_time_travel;
+
+
+-- Example
+
+CREATE OR REPLACE DATABASE tasty_bytes_clone;
+
+CREATE OR REPLACE TABLE tasty_bytes.raw_pos.truck_clone
+    CLONE tasty_bytes.raw_pos.truck;
+
+
+SELECT * FROM TASTY_BYTES.INFORMATION_SCHEMA.TABLE_STORAGE_METRICS
+WHERE (TABLE_NAME = 'TRUCK_CLONE' OR TABLE_NAME = 'TRUCK')
+AND TABLE_CATALOG = 'TASTY_BYTES';
+    
