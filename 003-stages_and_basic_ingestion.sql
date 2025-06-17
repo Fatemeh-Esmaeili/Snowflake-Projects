@@ -1,20 +1,4 @@
-/*--
-1- Snowflake stage object
-2- create an external stage
-3- diff between an internal and external stage
-4- The 3 types of internal stages
-5- view staged files
-6- load files from a stage to an existing table
-7- query Snowflake data loading history
---*/
-
-
-
 USE ROLE accountadmin;
-
-/*--
-. database, schema and warehouse creation
---*/
 
 ---> create tasty_bytes database
 CREATE OR REPLACE DATABASE tasty_bytes;
@@ -32,7 +16,6 @@ CREATE OR REPLACE SCHEMA tasty_bytes.harmonized;
 CREATE OR REPLACE SCHEMA tasty_bytes.analytics;
 
 ---> create warehouses
----> this warehouse is just for loading the data
 CREATE OR REPLACE WAREHOUSE demo_build_wh
     WAREHOUSE_SIZE = 'xxxlarge'
     WAREHOUSE_TYPE = 'standard'
@@ -41,8 +24,6 @@ CREATE OR REPLACE WAREHOUSE demo_build_wh
     INITIALLY_SUSPENDED = TRUE
 COMMENT = 'demo build warehouse for tasty bytes assets';
 
-
----> this warehouse is for doing analysis
 CREATE OR REPLACE WAREHOUSE tasty_de_wh
     WAREHOUSE_SIZE = 'xsmall'
     WAREHOUSE_TYPE = 'standard'
@@ -53,43 +34,19 @@ COMMENT = 'data engineering warehouse for tasty bytes';
 
 USE WAREHOUSE tasty_de_wh;
 
-/*--
----> file format and stage creation
---*/
-
+---> file format creation
 CREATE OR REPLACE FILE FORMAT tasty_bytes.public.csv_ff
 type = 'csv';
 
 ---> stage creation
--- EXTERNAL stage because of pulling from s3 bucket
--- data that is connected to is not managed by Snowflake
--- means that snowflake is not responsible for controlling access to the data
--- so we need to add a reference to an external cloud data storage location e.g. AWS S3/Azure
-
 CREATE OR REPLACE STAGE tasty_bytes.public.s3load
 url = 's3://sfquickstarts/frostbyte_tastybytes/'
 file_format = tasty_bytes.public.csv_ff;
--- file format can be used for both internal & external stages
-
-/*--
 ---> example of creating an internal stage
--- Snowflake does manage the cloud storage for internal stages.
--- mean Snowflake takes care of security, manage cloud storage billing, etc.
--- In internal stages, there is no URL, no access credentials.
---*/
-
 -- CREATE OR REPLACE STAGE tasty_bytes.public.internal_stage_test;
 
 ---> list files in stage
-ls @tasty_bytes.public.s3load; --name stage
-
--- when referencing name stages we use @ character
--- when referencing table stages we use @% character
--- when referencing user stages we use @~ character
-
-/*--
- raw zone table build
---*/
+ls @tasty_bytes.public.s3load;
 
 ---> country table build
 CREATE OR REPLACE TABLE tasty_bytes.raw_pos.country
@@ -286,13 +243,6 @@ ON cl.customer_id = oh.customer_id
 GROUP BY cl.customer_id, cl.city, cl.country, cl.first_name,
 cl.last_name, cl.phone_number, cl.e_mail;
 
-
-
-/*--
-. analytics view creation
--- highly clean, highly reliable analytics schema
---*/
-
 ---> orders_v view
 CREATE OR REPLACE VIEW tasty_bytes.analytics.orders_v
 COMMENT = 'Tasty Bytes Order Detail View'
@@ -304,11 +254,6 @@ CREATE OR REPLACE VIEW tasty_bytes.analytics.customer_loyalty_metrics_v
 COMMENT = 'Tasty Bytes Customer Loyalty Member Metrics View'
     AS
 SELECT * FROM tasty_bytes.harmonized.customer_loyalty_metrics_v;
-
-
-/*--
- raw zone table load
---*/
 
 USE WAREHOUSE demo_build_wh;
 
@@ -349,56 +294,6 @@ DROP WAREHOUSE IF EXISTS demo_build_wh;
 
 USE WAREHOUSE TASTY_DE_WH;
 
-
-
 SELECT file_name, error_count, status, last_load_time FROM snowflake.account_usage.copy_history
   ORDER BY last_load_time DESC
   LIMIT 10;
-
-
-SELECT * FROM TASTY_BYTES.RAW_POS.COUNTRY
-LIMIT 10;
-
-
-
-/*--
-ANOTHER EXAMPLE
---*/
-
-USE WAREHOUSE compute_wh;
-CREATE DATABASE test_ingestion;
-CREATE OR REPLACE FILE FORMAT test_ingestion.public.csv_ff
-type = 'csv';
-
-
-CREATE OR REPLACE STAGE test_ingestion.public.s3load
-url = 's3://sfquickstarts/tasty-bytes-builder-education/raw_pos/truck'
-file_format = test_ingestion.public.csv_ff;
-
-
-ls @test_ingestion.public.s3load;
-
-
--- truck table build
-CREATE OR REPLACE TABLE test_ingestion.public.truck
-(
-    truck_id NUMBER(38,0),
-    menu_type_id NUMBER(38,0),
-    primary_city VARCHAR(16777216),
-    region VARCHAR(16777216),
-    iso_region VARCHAR(16777216),
-    country VARCHAR(16777216),
-    iso_country_code VARCHAR(16777216),
-    franchise_flag NUMBER(38,0),
-    year NUMBER(38,0),
-    make VARCHAR(16777216),
-    model VARCHAR(16777216),
-    ev_flag NUMBER(38,0),
-    franchise_id NUMBER(38,0),
-    truck_opening_date DATE
-);
-
-
-
-COPY INTO  test_ingestion.public.truck
-FROM @test_ingestion.public.s3load;
