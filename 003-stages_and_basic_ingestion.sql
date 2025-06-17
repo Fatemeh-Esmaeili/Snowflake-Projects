@@ -81,7 +81,7 @@ file_format = tasty_bytes.public.csv_ff;
 -- CREATE OR REPLACE STAGE tasty_bytes.public.internal_stage_test;
 
 ---> list files in stage
-ls @frostbyte_tasty_bytes.public.s3load; --name stage
+ls @tasty_bytes.public.s3load; --name stage
 
 -- when referencing name stages we use @ character
 -- when referencing table stages we use @% character
